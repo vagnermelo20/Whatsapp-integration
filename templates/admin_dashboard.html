@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .pending-users, .batches {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .action-btn {
+            padding: 6px 10px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        .message-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .message-cell:hover {
+            white-space: normal;
+            overflow: visible;
+        }
+        .btn-view {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-view:hover {
+            background-color: #0069d9;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Painel de Administração</h1>
+        <div>
+            <a href="/admin/whatsapp/" style="margin-right: 20px;">Dashboard WhatsApp</a>
+            <a href="/logout/">Sair</a>
+        </div>
+    </div>
+
+    {% if error_message == 'no_batches' %}
+    <div class="error-message">
+        Não há lotes disponíveis. Crie um novo lote antes de aprovar usuários.
+    </div>
+    {% elif error_message == 'batch_has_users' %}
+    <div class="error-message">
+        Não é possível excluir um lote que possui usuários associados.
+    </div>
+    {% endif %}
+
+    <div class="pending-users">
+        <h2>Cadastros Pendentes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in pending_users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.phone_number }}</td>
+                    <td>{{ user.created_at }}</td>
+                    <td>
+                        <form method="post" action="/admin/approve/{{ user.id }}/">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn">Aprovar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Nenhum cadastro pendente.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="batches">
+        <h2>Lotes Disponíveis</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Hora</th>
+                    <th>Capacidade</th>
+                    <th>Usuários Cadastrados</th>
+                    <th>Mensagem</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for batch in batches %}
+                <tr>
+                    <td>{{ batch.date }}</td>
+                    <td>{{ batch.time }}</td>
+                    <td>{{ batch.max_participants }}</td>
+                    <td>{{ batch.users_count }} / {{ batch.max_participants }}</td>
+                    <td class="message-cell" title="{{ batch.message_template }}">{{ batch.message_template }}</td>
+                    <td>
+                        <a href="/admin/batch/{{ batch.id }}/" class="btn-view">Ver Detalhes</a>
+                        <form method="post" action="/admin/delete-batch/{{ batch.id }}/" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-delete" onclick="return confirm('Tem certeza que deseja excluir este lote? Isso também removerá todas as associações de usuários.')">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">Nenhum lote disponível.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Criar Novo Lote</h3>
+        <form method="post" action="/admin/create-batch/">
+            {% csrf_token %}
+            <label for="date">Data:</label>
+            <input type="date" id="date" name="date" required><br><br>
+
+            <label for="time">Hora:</label>
+            <input type="time" id="time" name="time" required><br><br>
+
+            <label for="max_participants">Capacidade:</label>
+            <input type="number" id="max_participants" name="max_participants" min="1" required><br><br>
+
+            <label for="message_template">Mensagem:</label><br>
+            <textarea id="message_template" name="message_template" rows="4" cols="50" placeholder="Olá {nome}, sua consulta está agendada para {data} às {hora}." required></textarea><br><br>
+
+            <button type="submit">Criar Lote</button>
+        </form>
+    </div>
+</body>
+</html>

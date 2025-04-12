@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,10 +57,11 @@ ROOT_URLCONF = 'project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -122,3 +124,23 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Redirecionar para a página de login se o usuário não estiver autenticado
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/admin/dashboard/'  # Alterado para o novo painel personalizado
+LOGOUT_REDIRECT_URL = '/login/'
+
+# Configuração do backend de autenticação personalizado
+AUTHENTICATION_BACKENDS = [
+    'app.auth_backends.EmailBackend',  # Para permitir login com email
+    'django.contrib.auth.backends.ModelBackend',  # Backend padrão do Django
+]
+
+# Configurações WhatsApp API
+WHATSAPP_API = {
+    'ACCESS_TOKEN': 'seu_token_de_acesso',  # Substitua pelo token real
+    'PHONE_NUMBER_ID': 'seu_phone_number_id',  # Substitua pelo ID real
+    'VERSION': 'v17.0',  # versão atual da API
+    'BASE_URL': 'https://graph.facebook.com/',
+    'VERIFY_TOKEN': 'token_de_verificacao_webhook'  # Token para verificação do webhook
+}

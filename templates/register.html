@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuário</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        .message {
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cadastro de Usuário</h1>
+    
+    <div id="messageBox" class="message"></div>
+    
+    <form id="registerForm" action="/register/" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="name">Nome:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Número de Telefone:</label>
+            <input type="text" id="phone_number" name="phone_number" placeholder="5511999999999" required>
+            <small>Formato: código do país + DDD + número (sem espaços ou símbolos)</small>
+        </div>
+
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('registerForm');
+            const messageBox = document.getElementById('messageBox');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const phone = document.getElementById('phone_number').value.trim();
+                
+                fetch('/register/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        // Mostrar mensagem de sucesso
+                        messageBox.className = 'message success';
+                        messageBox.innerHTML = `Você foi registrado com sucesso! Nós enviaremos uma mensagem no WhatsApp para o número <strong>${phone}</strong> quando sua solicitação for aprovada.`;
+                        messageBox.style.display = 'block';
+                        
+                        // Limpar o formulário
+                        form.reset();
+                        
+                        // Rolar para a mensagem
+                        messageBox.scrollIntoView({ behavior: 'smooth' });
+                    }
+                })
+                .catch(error => {
+                    messageBox.className = 'message error';
+                    messageBox.innerHTML = `Erro ao processar o cadastro. Por favor, tente novamente.`;
+                    messageBox.style.display = 'block';
+                    console.error('Erro:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

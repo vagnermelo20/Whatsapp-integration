@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Lote</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .header-links a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .batch-info {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .batch-info h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 150px;
+        }
+        .users-list {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        .message-box {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Detalhes do Lote</h1>
+        <div class="header-links">
+            <a href="/admin/dashboard/">Voltar para Dashboard</a>
+            <a href="/logout/">Sair</a>
+        </div>
+    </div>
+
+    <div class="batch-info">
+        <h2>Informações do Lote #{{ batch.id }}</h2>
+        
+        <div class="info-row">
+            <div class="info-label">Data:</div>
+            <div>{{ batch.date }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Horário:</div>
+            <div>{{ batch.time }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Capacidade:</div>
+            <div>{{ batch.max_participants }} participantes</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Participantes:</div>
+            <div>{{ assignments|length }} / {{ batch.max_participants }}</div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Template de Mensagem:</div>
+        </div>
+        <div class="message-box">{{ batch.message_template }}</div>
+    </div>
+
+    <div class="users-list">
+        <h2>Usuários Cadastrados neste Lote ({{ assignments|length }})</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Email</th>
+                    <th>Data de Cadastro</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>{{ assignment.user.name }}</td>
+                    <td>{{ assignment.user.phone_number }}</td>
+                    <td>{{ assignment.user.email }}</td>
+                    <td>{{ assignment.user.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Nenhum usuário cadastrado neste lote.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="/admin/dashboard/" class="back-btn">Voltar para Dashboard</a>
+        
+        <form method="post" action="/admin/delete-batch/{{ batch.id }}/" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="delete-btn" onclick="return confirm('Tem certeza que deseja excluir este lote? Isso também removerá todas as associações de usuários.')">Excluir Lote</button>
+        </form>
+    </div>
+</body>
+</html>
