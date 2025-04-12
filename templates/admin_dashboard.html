@@ -176,6 +176,17 @@
             </tbody>
         </table>
 
+        {% if last_batch %}
+        <div class="last-message-reference" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f8f9fa;">
+            <h3>Último Template de Mensagem Criado</h3>
+            <p><strong>Data de criação:</strong> {{ last_batch.created_at }}</p>
+            <div style="background-color: #fff; padding: 10px; border: 1px solid #eee; border-radius: 3px;">
+                <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">{{ last_batch.message_template }}</pre>
+            </div>
+            <p><em>Você pode usar isso como referência para criar seu novo template de mensagem.</em></p>
+        </div>
+        {% endif %}
+
         <h3>Criar Novo Lote</h3>
         <form method="post" action="/admin/create-batch/">
             {% csrf_token %}

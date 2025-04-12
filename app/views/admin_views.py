@@ -100,10 +100,14 @@ def admin_dashboard(request: HttpRequest):
     """Exibe o painel administrativo com usuários pendentes e lotes."""
     pending_users = UserRegistration.objects.filter(status='pending').order_by('created_at')
     batches = Batch.objects.annotate(users_count=Count('batchassignment')).order_by('date', 'time')
+    
+    # Busca o último lote criado para referência do template de mensagem
+    last_batch = Batch.objects.order_by('-created_at').first()
 
     context = {
         'pending_users': pending_users,
         'batches': batches,
+        'last_batch': last_batch,
         'error_message': request.GET.get('error') # Para exibir mensagens de erro (ex: no_batches)
     }
     return render(request, 'admin_dashboard.html', context)
