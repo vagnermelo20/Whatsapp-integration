@@ -23,7 +23,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input[type="text"] {
+        input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -74,8 +74,47 @@
 
         <div class="form-group">
             <label for="phone_number">Número de Telefone:</label>
-            <input type="text" id="phone_number" name="phone_number" placeholder="5511999999999" required>
-            <small>Formato: código do país + DDD + número (sem espaços ou símbolos)</small>
+            <input type="text" id="phone_number" name="phone_number" placeholder="(xx)xxxxx-xxxx" required>
+            <small>Formato: DDD + número (será formatado automaticamente)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="age">Idade:</label>
+            <input type="number" id="age" name="age" min="1" max="120">
+        </div>
+
+        <div class="form-group">
+            <label for="bairro">Bairro:</label>
+            <input type="text" id="bairro" name="bairro">
+        </div>
+
+        <div class="form-group">
+            <label for="education">Escolaridade:</label>
+            <select id="education" name="education">
+                <option value="">Selecione</option>
+                <option value="fund_incomplete">Fundamental Incompleto</option>
+                <option value="fund_complete">Fundamental Completo</option>
+                <option value="med_incomplete">Médio Incompleto</option>
+                <option value="med_complete">Médio Completo</option>
+                <option value="sup_incomplete">Superior Incompleto</option>
+                <option value="sup_complete">Superior Completo</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="study_period_group" style="display: none;">
+            <label for="study_period">Período de Estudo:</label>
+            <select id="study_period" name="study_period">
+                <option value="">Selecione</option>
+                <option value="morning">Manhã</option>
+                <option value="afternoon">Tarde</option>
+                <option value="night">Noite</option>
+                <option value="integral">Integral</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="desired_course">Curso Desejado:</label>
+            <input type="text" id="desired_course" name="desired_course">
         </div>
 
         <button type="submit">Cadastrar</button>
@@ -85,12 +124,85 @@
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('registerForm');
             const messageBox = document.getElementById('messageBox');
+            const educationSelect = document.getElementById('education');
+            const studyPeriodGroup = document.getElementById('study_period_group');
+            const phoneInput = document.getElementById('phone_number');
+            
+            // Format phone number while typing
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
+                
+                // Check if user entered country code (e.g., '55')
+                if (value.length > 11 && value.startsWith('55')) {
+                    value = value.slice(2); // Remove country code
+                }
+                
+                // Format the phone number
+                if (value.length > 0) {
+                    let formattedNumber = '';
+                    
+                    // Area code
+                    if (value.length > 2) {
+                        formattedNumber = `(${value.slice(0, 2)})`;
+                    } else {
+                        formattedNumber = `(${value}`;
+                    }
+                    
+                    // Middle part
+                    if (value.length > 2) {
+                        let middleLength = Math.min(5, value.length - 2);
+                        formattedNumber += value.slice(2, 2 + middleLength);
+                    }
+                    
+                    // Add hyphen and last part
+                    if (value.length > 7) {
+                        formattedNumber += `-${value.slice(7)}`;
+                    }
+                    
+                    e.target.value = formattedNumber;
+                }
+            });
+            
+            // Before form submit, convert formatted number back to just digits
+            form.addEventListener('submit', function(e) {
+                const formattedPhone = phoneInput.value;
+                // Store the formatted phone for display
+                const displayPhone = formattedPhone;
+                
+                // Convert to digits-only for the backend
+                const digitsOnly = formattedPhone.replace(/\D/g, '');
+                
+                // Ensure we include country code (55 for Brazil) if not there
+                const countryCode = '55';
+                const phoneForBackend = digitsOnly.startsWith(countryCode) ? 
+                    digitsOnly : countryCode + digitsOnly;
+                
+                // Set the value for submission but don't change the display
+                const hiddenPhone = document.createElement('input');
+                hiddenPhone.type = 'hidden';
+                hiddenPhone.name = 'phone_number';
+                hiddenPhone.value = phoneForBackend;
+                form.appendChild(hiddenPhone);
+                
+                // Don't submit the visible field
+                phoneInput.name = 'phone_display';
+            });
+            
+            // Mostrar campo de período de estudo apenas se a escolaridade for incompleta
+            educationSelect.addEventListener('change', function() {
+                if (this.value.includes('incomplete')) {
+                    studyPeriodGroup.style.display = 'block';
+                } else {
+                    studyPeriodGroup.style.display = 'none';
+                    document.getElementById('study_period').value = '';
+                }
+            });
             
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const formData = new FormData(form);
-                const phone = document.getElementById('phone_number').value.trim();
+                const phone = phoneInput.value.trim();
                 
                 fetch('/register/', {
                     method: 'POST',

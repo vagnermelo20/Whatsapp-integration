@@ -112,12 +112,12 @@
         
         <div class="info-row">
             <div class="info-label">Data:</div>
-            <div>{{ batch.date }}</div>
+            <div>{{ batch.date|date:"d/m/Y" }}</div>
         </div>
         
         <div class="info-row">
             <div class="info-label">Horário:</div>
-            <div>{{ batch.time }}</div>
+            <div>{{ batch.time|date:"H:i" }}</div>
         </div>
         
         <div class="info-row">
@@ -144,7 +144,11 @@
                 <tr>
                     <th>Nome</th>
                     <th>Telefone</th>
-                    <th>Email</th>
+                    <th>Idade</th>
+                    <th>Bairro</th>
+                    <th>Escolaridade</th>
+                    <th>Período</th>
+                    <th>Curso Desejado</th>
                     <th>Data de Cadastro</th>
                 </tr>
             </thead>
@@ -152,13 +156,31 @@
                 {% for assignment in assignments %}
                 <tr>
                     <td>{{ assignment.user.name }}</td>
-                    <td>{{ assignment.user.phone_number }}</td>
-                    <td>{{ assignment.user.email }}</td>
+                    <td>{{ assignment.user.formatted_phone }}</td>
+                    <td>{{ assignment.user.age|default:"-" }}</td>
+                    <td>{{ assignment.user.bairro|default:"-" }}</td>
+                    <td>
+                        {% if assignment.user.education == 'fund_incomplete' %}Fundamental Incompleto
+                        {% elif assignment.user.education == 'fund_complete' %}Fundamental Completo
+                        {% elif assignment.user.education == 'med_incomplete' %}Médio Incompleto
+                        {% elif assignment.user.education == 'med_complete' %}Médio Completo
+                        {% elif assignment.user.education == 'sup_incomplete' %}Superior Incompleto
+                        {% elif assignment.user.education == 'sup_complete' %}Superior Completo
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if assignment.user.study_period == 'morning' %}Manhã
+                        {% elif assignment.user.study_period == 'afternoon' %}Tarde
+                        {% elif assignment.user.study_period == 'night' %}Noite
+                        {% elif assignment.user.study_period == 'integral' %}Integral
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ assignment.user.desired_course|default:"-" }}</td>
                     <td>{{ assignment.user.created_at|date:"d/m/Y H:i" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4">Nenhum usuário cadastrado neste lote.</td>
+                    <td colspan="8">Nenhum usuário cadastrado neste lote.</td>
                 </tr>
                 {% endfor %}
             </tbody>

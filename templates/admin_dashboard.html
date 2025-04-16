@@ -113,6 +113,11 @@
                 <tr>
                     <th>Nome</th>
                     <th>Telefone</th>
+                    <th>Idade</th>
+                    <th>Bairro</th>
+                    <th>Escolaridade</th>
+                    <th>Período</th>
+                    <th>Curso Desejado</th>
                     <th>Data</th>
                     <th>Ações</th>
                 </tr>
@@ -121,18 +126,41 @@
                 {% for user in pending_users %}
                 <tr>
                     <td>{{ user.name }}</td>
-                    <td>{{ user.phone_number }}</td>
-                    <td>{{ user.created_at }}</td>
+                    <td>{{ user.formatted_phone }}</td>
+                    <td>{{ user.age|default:"-" }}</td>
+                    <td>{{ user.bairro|default:"-" }}</td>
                     <td>
-                        <form method="post" action="/admin/approve/{{ user.id }}/">
+                        {% if user.education == 'fund_incomplete' %}Fundamental Incompleto
+                        {% elif user.education == 'fund_complete' %}Fundamental Completo
+                        {% elif user.education == 'med_incomplete' %}Médio Incompleto
+                        {% elif user.education == 'med_complete' %}Médio Completo
+                        {% elif user.education == 'sup_incomplete' %}Superior Incompleto
+                        {% elif user.education == 'sup_complete' %}Superior Completo
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if user.study_period == 'morning' %}Manhã
+                        {% elif user.study_period == 'afternoon' %}Tarde
+                        {% elif user.study_period == 'night' %}Noite
+                        {% elif user.study_period == 'integral' %}Integral
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ user.desired_course|default:"-" }}</td>
+                    <td>{{ user.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <form method="post" action="/admin/approve/{{ user.id }}/" style="display: inline;">
                             {% csrf_token %}
-                            <button type="submit" class="action-btn">Aprovar</button>
+                            <button type="submit" class="action-btn btn-view">Aprovar</button>
+                        </form>
+                        <form method="post" action="/admin/reject/{{ user.id }}/" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn btn-delete" onclick="return confirm('Tem certeza que deseja rejeitar este usuário?')">Recusar</button>
                         </form>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4">Nenhum cadastro pendente.</td>
+                    <td colspan="9">Nenhum cadastro pendente.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -193,17 +221,273 @@
             <label for="date">Data:</label>
             <input type="date" id="date" name="date" required><br><br>
 
-            <label for="time">Hora:</label>
-            <input type="time" id="time" name="time" required><br><br>
+            <label>Hora:</label>
+            <div class="time-selector" style="display: inline-flex; gap: 5px; align-items: center;">
+                <select name="hour" id="hour" required style="padding: 5px; width: 70px;">
+                    <!-- O seletor de horas será preenchido via JavaScript -->
+                </select>
+                <span>:</span>
+                <select name="minute" id="minute" required style="padding: 5px; width: 70px;">
+                    <!-- O seletor de minutos será preenchido via JavaScript -->
+                </select>
+                <input type="hidden" id="time" name="time">
+            </div><br><br>
 
             <label for="max_participants">Capacidade:</label>
             <input type="number" id="max_participants" name="max_participants" min="1" required><br><br>
 
             <label for="message_template">Mensagem:</label><br>
-            <textarea id="message_template" name="message_template" rows="4" cols="50" placeholder="Olá {nome}, sua consulta está agendada para {data} às {hora}." required></textarea><br><br>
+            <textarea id="message_template" name="message_template" rows="4" cols="50" required>{% if last_batch %}{{ last_batch.message_template }}{% endif %}</textarea><br><br>
 
-            <button type="submit">Criar Lote</button>
+            <button type="submit" onclick="combineTime()">Criar Lote</button>
         </form>
+
+        <h3>Criar Lotes Automáticos</h3>
+        <form method="post" action="/admin/create-batch-auto/" id="batchAutoForm">
+            {% csrf_token %}
+            <div style="margin-bottom: 15px;">
+                <label><strong>Selecione as Datas:</strong></label><br>
+                <div id="date-selector" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
+                    <!-- Aqui serão inseridos os campos de seleção de data via JavaScript -->
+                    <button type="button" id="addDateBtn" style="padding: 5px 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">+ Adicionar Data</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label><strong>Selecione os Horários:</strong></label><br>
+                <div id="time-selector" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
+                    <!-- Aqui serão inseridos os campos de seleção de horário via JavaScript -->
+                    <button type="button" id="addTimeBtn" style="padding: 5px 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">+ Adicionar Horário</button>
+                </div>
+            </div>
+
+            <label for="auto_max_participants"><strong>Capacidade por Lote:</strong></label>
+            <input type="number" id="auto_max_participants" name="max_participants" min="1" value="10" required><br><br>
+
+            <label for="auto_message_template"><strong>Mensagem Padrão:</strong></label><br>
+            <textarea id="auto_message_template" name="message_template" rows="4" cols="50" required>{% if last_batch %}{{ last_batch.message_template }}{% endif %}</textarea><br><br>
+
+            <div id="preview-section" style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f8f9fa; display: none;">
+                <h4>Prévia dos Lotes a serem Criados</h4>
+                <p><strong>Número total de lotes:</strong> <span id="totalBatches">0</span></p>
+                <div id="batchesPreview" style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; background-color: #fff; margin-top: 10px;">
+                </div>
+            </div>
+
+            <button type="button" id="previewBtn" style="margin-right: 10px; padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Visualizar Lotes</button>
+            <button type="submit" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Criar Lotes Automáticos</button>
+        </form>
+
+        <script>
+            function combineTime() {
+                const hour = document.getElementById('hour').value.padStart(2, '0');
+                const minute = document.getElementById('minute').value;
+                document.getElementById('time').value = `${hour}:${minute}`;
+            }
+            
+            // Gerar opções de hora e minuto quando a página carregar
+            window.onload = function() {
+                const hourSelect = document.getElementById('hour');
+                const minuteSelect = document.getElementById('minute');
+                
+                // Criar opções para horas (0-23)
+                for (let i = 0; i < 24; i++) {
+                    const option = document.createElement('option');
+                    option.value = i.toString().padStart(2, '0');
+                    option.textContent = i.toString().padStart(2, '0');
+                    hourSelect.appendChild(option);
+                }
+                
+                // Criar opções para minutos (00, 15, 30, 45)
+                const minuteOptions = ['00', '15', '30', '45'];
+                minuteOptions.forEach(function(min) {
+                    const option = document.createElement('option');
+                    option.value = min;
+                    option.textContent = min;
+                    minuteSelect.appendChild(option);
+                });
+
+                // Inicialização para criação automática de lotes
+                initBatchAutoForm();
+            };
+
+            function initBatchAutoForm() {
+                const dateSelector = document.getElementById('date-selector');
+                const timeSelector = document.getElementById('time-selector');
+                const addDateBtn = document.getElementById('addDateBtn');
+                const addTimeBtn = document.getElementById('addTimeBtn');
+                const previewBtn = document.getElementById('previewBtn');
+
+                // Adicionar primeiro campo de data por padrão
+                addDateField();
+
+                // Adicionar primeiro campo de horário por padrão
+                addTimeField();
+
+                // Event listeners
+                addDateBtn.addEventListener('click', addDateField);
+                addTimeBtn.addEventListener('click', addTimeField);
+                previewBtn.addEventListener('click', previewBatches);
+
+                function addDateField() {
+                    const dateWrapper = document.createElement('div');
+                    dateWrapper.style.display = 'flex';
+                    dateWrapper.style.alignItems = 'center';
+                    dateWrapper.style.marginBottom = '5px';
+
+                    const dateInput = document.createElement('input');
+                    dateInput.type = 'date';
+                    dateInput.name = 'selected_days';
+                    dateInput.required = true;
+                    dateInput.className = 'date-input';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.textContent = '✕';
+                    removeBtn.style.marginLeft = '5px';
+                    removeBtn.style.padding = '2px 6px';
+                    removeBtn.style.backgroundColor = '#dc3545';
+                    removeBtn.style.color = 'white';
+                    removeBtn.style.border = 'none';
+                    removeBtn.style.borderRadius = '4px';
+                    removeBtn.style.cursor = 'pointer';
+                    
+                    removeBtn.addEventListener('click', function() {
+                        dateWrapper.remove();
+                    });
+                    
+                    dateWrapper.appendChild(dateInput);
+                    dateWrapper.appendChild(removeBtn);
+                    
+                    // Inserir antes do botão adicionar
+                    dateSelector.insertBefore(dateWrapper, addDateBtn);
+                }
+
+                function addTimeField() {
+                    const timeWrapper = document.createElement('div');
+                    timeWrapper.style.display = 'flex';
+                    timeWrapper.style.alignItems = 'center';
+                    timeWrapper.style.marginBottom = '5px';
+
+                    const hourSelect = document.createElement('select');
+                    hourSelect.style.padding = '5px';
+                    hourSelect.style.width = '60px';
+                    hourSelect.className = 'hour-select';
+                    
+                    // Criar opções para horas (0-23)
+                    for (let i = 0; i < 24; i++) {
+                        const option = document.createElement('option');
+                        option.value = i.toString().padStart(2, '0');
+                        option.textContent = i.toString().padStart(2, '0');
+                        hourSelect.appendChild(option);
+                    }
+
+                    const separator = document.createElement('span');
+                    separator.textContent = ':';
+                    separator.style.margin = '0 5px';
+                    
+                    const minuteSelect = document.createElement('select');
+                    minuteSelect.style.padding = '5px';
+                    minuteSelect.style.width = '60px';
+                    minuteSelect.className = 'minute-select';
+                    
+                    // Criar opções para minutos (00, 15, 30, 45)
+                    const minuteOptions = ['00', '15', '30', '45'];
+                    minuteOptions.forEach(function(min) {
+                        const option = document.createElement('option');
+                        option.value = min;
+                        option.textContent = min;
+                        minuteSelect.appendChild(option);
+                    });
+
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'selected_hours';
+                    
+                    // Atualiza o valor oculto quando os selects mudam
+                    function updateTime() {
+                        hiddenInput.value = `${hourSelect.value}:${minuteSelect.value}`;
+                    }
+                    
+                    hourSelect.addEventListener('change', updateTime);
+                    minuteSelect.addEventListener('change', updateTime);
+                    
+                    // Definir valor inicial
+                    setTimeout(updateTime, 0);
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.textContent = '✕';
+                    removeBtn.style.marginLeft = '5px';
+                    removeBtn.style.padding = '2px 6px';
+                    removeBtn.style.backgroundColor = '#dc3545';
+                    removeBtn.style.color = 'white';
+                    removeBtn.style.border = 'none';
+                    removeBtn.style.borderRadius = '4px';
+                    removeBtn.style.cursor = 'pointer';
+                    
+                    removeBtn.addEventListener('click', function() {
+                        timeWrapper.remove();
+                    });
+                    
+                    timeWrapper.appendChild(hourSelect);
+                    timeWrapper.appendChild(separator);
+                    timeWrapper.appendChild(minuteSelect);
+                    timeWrapper.appendChild(hiddenInput);
+                    timeWrapper.appendChild(removeBtn);
+                    
+                    // Inserir antes do botão adicionar
+                    timeSelector.insertBefore(timeWrapper, addTimeBtn);
+                }
+
+                function previewBatches() {
+                    const dateInputs = document.querySelectorAll('.date-input');
+                    const timeInputs = document.querySelectorAll('input[name="selected_hours"]');
+                    const previewSection = document.getElementById('preview-section');
+                    const batchesPreview = document.getElementById('batchesPreview');
+                    const totalBatches = document.getElementById('totalBatches');
+                    
+                    if (dateInputs.length === 0 || timeInputs.length === 0) {
+                        alert('Selecione pelo menos uma data e um horário.');
+                        return;
+                    }
+                    
+                    // Limpa a prévia anterior
+                    batchesPreview.innerHTML = '';
+                    
+                    let combinations = [];
+                    
+                    dateInputs.forEach(dateInput => {
+                        if (dateInput.value) {
+                            const date = new Date(dateInput.value);
+                            const formattedDate = date.toLocaleDateString('pt-BR');
+                            
+                            timeInputs.forEach(timeInput => {
+                                if (timeInput.value) {
+                                    combinations.push(`${formattedDate} às ${timeInput.value}`);
+                                }
+                            });
+                        }
+                    });
+                    
+                    totalBatches.textContent = combinations.length;
+                    
+                    if (combinations.length > 0) {
+                        combinations.forEach(combo => {
+                            const item = document.createElement('div');
+                            item.style.padding = '5px 0';
+                            item.style.borderBottom = '1px solid #eee';
+                            item.textContent = combo;
+                            batchesPreview.appendChild(item);
+                        });
+                        
+                        previewSection.style.display = 'block';
+                    } else {
+                        previewSection.style.display = 'none';
+                    }
+                }
+            }
+        </script>
     </div>
 </body>
 </html>

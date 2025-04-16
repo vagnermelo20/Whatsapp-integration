@@ -32,13 +32,23 @@ def register_user(request: HttpRequest):
         try:
             name = request.POST.get('name')
             phone_number = request.POST.get('phone_number')
+            age = request.POST.get('age')
+            bairro = request.POST.get('bairro')
+            education = request.POST.get('education')
+            study_period = request.POST.get('study_period')
+            desired_course = request.POST.get('desired_course')
 
             if not name or not phone_number:
                 return JsonResponse({'error': 'Nome e telefone são obrigatórios.'}, status=400)
 
             user = UserRegistration.objects.create(
                 name=name,
-                phone_number=phone_number
+                phone_number=phone_number,
+                age=age if age else None,
+                bairro=bairro if bairro else None,
+                education=education if education else None,
+                study_period=study_period if study_period else None,
+                desired_course=desired_course if desired_course else None
                 # status='pending' é o padrão
             )
             logger.info(f"Usuário registrado: {user.id} - {user.name}")

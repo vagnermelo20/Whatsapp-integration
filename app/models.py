@@ -3,6 +3,29 @@ from django.db import models
 class UserRegistration(models.Model):
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=15)
+    age = models.IntegerField(null=True, blank=True)
+    bairro = models.CharField(max_length=100, null=True, blank=True)
+    
+    EDUCATION_CHOICES = [
+        ('fund_incomplete', 'Fundamental Incompleto'),
+        ('fund_complete', 'Fundamental Completo'),
+        ('med_incomplete', 'Médio Incompleto'),
+        ('med_complete', 'Médio Completo'),
+        ('sup_incomplete', 'Superior Incompleto'),
+        ('sup_complete', 'Superior Completo'),
+    ]
+    education = models.CharField(max_length=20, choices=EDUCATION_CHOICES, null=True, blank=True)
+    
+    PERIOD_CHOICES = [
+        ('morning', 'Manhã'),
+        ('afternoon', 'Tarde'),
+        ('night', 'Noite'),
+        ('integral', 'integral'),
+    ]
+    study_period = models.CharField(max_length=20, choices=PERIOD_CHOICES, null=True, blank=True)
+    
+    desired_course = models.CharField(max_length=255, null=True, blank=True)
+    
     status = models.CharField(
         max_length=20,
         choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')],
