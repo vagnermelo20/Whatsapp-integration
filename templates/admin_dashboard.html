@@ -91,7 +91,6 @@
     <div class="header">
         <h1>Painel de Administração</h1>
         <div>
-            <a href="/admin/whatsapp/" style="margin-right: 20px;">Dashboard WhatsApp</a>
             <a href="/logout/">Sair</a>
         </div>
     </div>
@@ -214,33 +213,6 @@
             <p><em>Você pode usar isso como referência para criar seu novo template de mensagem.</em></p>
         </div>
         {% endif %}
-
-        <h3>Criar Novo Lote</h3>
-        <form method="post" action="/admin/create-batch/">
-            {% csrf_token %}
-            <label for="date">Data:</label>
-            <input type="date" id="date" name="date" required><br><br>
-
-            <label>Hora:</label>
-            <div class="time-selector" style="display: inline-flex; gap: 5px; align-items: center;">
-                <select name="hour" id="hour" required style="padding: 5px; width: 70px;">
-                    <!-- O seletor de horas será preenchido via JavaScript -->
-                </select>
-                <span>:</span>
-                <select name="minute" id="minute" required style="padding: 5px; width: 70px;">
-                    <!-- O seletor de minutos será preenchido via JavaScript -->
-                </select>
-                <input type="hidden" id="time" name="time">
-            </div><br><br>
-
-            <label for="max_participants">Capacidade:</label>
-            <input type="number" id="max_participants" name="max_participants" min="1" required><br><br>
-
-            <label for="message_template">Mensagem:</label><br>
-            <textarea id="message_template" name="message_template" rows="4" cols="50" required>{% if last_batch %}{{ last_batch.message_template }}{% endif %}</textarea><br><br>
-
-            <button type="submit" onclick="combineTime()">Criar Lote</button>
-        </form>
 
         <h3>Criar Lotes Automáticos</h3>
         <form method="post" action="/admin/create-batch-auto/" id="batchAutoForm">
